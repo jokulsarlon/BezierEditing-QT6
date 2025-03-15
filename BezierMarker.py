@@ -15,9 +15,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtGui import *
-from qgis.core import *
-from qgis.gui import *
+from qgis.PyQt.QtGui import QColor
+from qgis.core import QgsWkbTypes
+from qgis.gui import QgsRubberBand, QgsVertexMarker
 
 
 class BezierMarker:
@@ -30,7 +30,7 @@ class BezierMarker:
         self.handle_rbls = []  # handle line list
 
         # bezier curve line
-        self.bezier_rbl = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
+        self.bezier_rbl = QgsRubberBand(self.canvas, QgsWkbTypes.GeometryType.LineGeometry)
         self.bezier_rbl.setColor(QColor(255, 0, 0, 150))
         self.bezier_rbl.setWidth(2)
 
