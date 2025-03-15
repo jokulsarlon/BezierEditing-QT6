@@ -15,11 +15,11 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-from qgis.core import *
-from qgis.gui import *
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QTranslator, QSettings, QLocale
+from qgis.PyQt.QtGui import QColor, QCursor, QIcon
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolBar, QInputDialog, QMessageBox
+from qgis.core import QgsProject, QgsVectorLayer, QgsGeometry, QgsWkbTypes, QgsMapLayer, QgsSettings
+from qgis.gui import QgsVertexMarker, QgsRubberBand, QgsMapCanvas
 import os
 import webbrowser
 
