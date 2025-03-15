@@ -27,11 +27,13 @@ from qgis.core import (
 )
 from qgis.gui import (
     QgsMapTool, QgsRubberBand, QgsVertexMarker,
-    QgsHighlight, QgsMapCanvasAnnotationItem
+    QgsHighlight, QgsMapCanvasAnnotationItem, QgsAttributeForm
 )
 from .BezierGeometry import *
 from .BezierMarker import *
 import math
+from typing import Dict, Any
+from PyQt6.QtCore import Qt
 
 class BezierEditingTool(QgsMapTool):
 
@@ -83,7 +85,7 @@ class BezierEditingTool(QgsMapTool):
             QPixmap(':/plugins/BezierEditing/icon/drawline.svg'), 1, 1)
         self.split_cursor = QCursor(
             QPixmap(':/plugins/BezierEditing/icon/mCrossHair.svg'), -1, -1)
-        self.unsplit_cursor = QCursor(Qt.ArrowCursor)
+        self.unsplit_cursor = QCursor(Qt.CursorShape.ArrowCursor)
 
         # initialize variable
         self.mode = "bezier"  # [bezier, freehand , split, unsplit]
@@ -122,22 +124,27 @@ class BezierEditingTool(QgsMapTool):
 
     def canvasPressEvent(self, event):
         modifiers = QApplication.keyboardModifiers()
-        if modifiers & Qt.KeyboardModifier.AltModifier:
+        
+        # 获取当前图层
         layer = self.canvas.currentLayer()
+        
+        # 检查图层是否存在且是矢量图层
         if not layer or layer.type() != QgsMapLayer.VectorLayer:
             return
+        
         self.checkSnapSetting()
         mouse_point, snapped, snap_point, snap_idx = self.getSnapPoint(event)
+        
         # bezier tool
         if self.mode == "bezier":
             # right click
             if event.button() == Qt.MouseButton.RightButton:
-                if bool(modifiers & Qt.ControlModifier):
+                if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
                     self.menu.exec_(QCursor.pos())
             # left click
             elif event.button() == Qt.MouseButton.LeftButton:
                 # with ctrl
-                if bool(modifiers & Qt.ControlModifier):
+                if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
                     # if click on anchor with ctrl, force to add anchor not moving anchor
                     if snapped[1]:
                         if self.editing_geom_type == QgsWkbTypes.PolygonGeometry:
@@ -159,7 +166,7 @@ class BezierEditingTool(QgsMapTool):
                         self.bg.add_anchor(self.clicked_idx, snap_point[0])
                         self.bm.add_anchor(self.clicked_idx, snap_point[0])
                 # with alt
-                elif bool(modifiers & Qt.AltModifier):
+                elif bool(modifiers & Qt.KeyboardModifier.AltModifier):
                     # if click on anchor with alt, move out a handle from anchor
                     if snapped[2] and snapped[1]:
                         self.mouse_state = "move_handle"
@@ -177,7 +184,7 @@ class BezierEditingTool(QgsMapTool):
                         self.bm.move_handle(snap_idx[2], snap_point[2])
 
                 # with shift
-                elif bool(modifiers & Qt.ShiftModifier):
+                elif bool(modifiers & Qt.KeyboardModifier.ShiftModifier):
                     # if click on anchor with shift, delete anchor from bezier line
                     if snapped[1]:
                         # polygon's first anchor
@@ -232,7 +239,7 @@ class BezierEditingTool(QgsMapTool):
         # freehand tool
         elif self.mode == "freehand":
             # left click
-            if event.button() == Qt.LeftButton:
+            if event.button() == Qt.MouseButton.LeftButton:
                 # if click on canvas, freehand drawing start
                 if not self.editing:
                     self.bg = BezierGeometry(self.projectCRS)
@@ -254,7 +261,7 @@ class BezierEditingTool(QgsMapTool):
         # split tool
         elif self.mode == "split":
             # right click
-            if event.button() == Qt.RightButton:
+            if event.button() == Qt.MouseButton.RightButton:
                 # if right click in editing, bezier editing finish
                 if self.editing:
                     self.finishEditing(layer)
@@ -264,7 +271,7 @@ class BezierEditingTool(QgsMapTool):
                     if ok:
                         self.editing = True
             # left click
-            elif event.button() == Qt.LeftButton:
+            elif event.button() == Qt.MouseButton.LeftButton:
                 # if click on bezier line, split bezier feature is created
                 if self.editing and self.editing_feature_id is not None:
                     type = layer.geometryType()
@@ -306,14 +313,14 @@ class BezierEditingTool(QgsMapTool):
         # unsplit tool
         elif self.mode == "unsplit":
             # if left click, feature selection
-            if event.button() == Qt.LeftButton:
+            if event.button() == Qt.MouseButton.LeftButton:
                 self.endPoint = self.startPoint = mouse_point
                 self.isEmittingPoint = True
                 self.showRect(self.startPoint, self.endPoint)
 
     def canvasMoveEvent(self, event):
         modifiers = QApplication.keyboardModifiers()
-        if bool(modifiers & Qt.ControlModifier):
+        if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
             self.smartGuideOn = True
         else:
             self.smartGuideOn = False
@@ -327,8 +334,8 @@ class BezierEditingTool(QgsMapTool):
             # add anchor and dragging
             if self.mouse_state == "add_anchor":
                 self.canvas.setCursor(self.movehandle_cursor)
-                withAlt = bool(modifiers & Qt.AltModifier)
-                withShift = bool(modifiers & Qt.ShiftModifier)
+                withAlt = bool(modifiers & Qt.KeyboardModifier.AltModifier)
+                withShift = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
                 other_handle_idx, other_handle_point, anchor_point = self.bg.move_handle2(
                     self.clicked_idx, mouse_point, withAlt, withShift)
                 if withShift:
@@ -347,7 +354,7 @@ class BezierEditingTool(QgsMapTool):
             elif self.mouse_state == "move_handle":
                 self.canvas.setCursor(self.movehandle_cursor)
                 point = snap_point[0]
-                withAlt = bool(modifiers & Qt.AltModifier)
+                withAlt = bool(modifiers & Qt.KeyboardModifier.AltModifier)
                 if withAlt:
                     self.bg.move_handle(self.clicked_idx, point, undo=False)
                     self.bm.move_handle(self.clicked_idx, point)
@@ -361,19 +368,19 @@ class BezierEditingTool(QgsMapTool):
                     self.bg.move_handle(self.clicked_idx, point, undo=False)
                     self.bm.move_handle(self.clicked_idx, point)
             # add handle
-            elif bool(modifiers & Qt.AltModifier) and snapped[1] and snapped[2]:
+            elif bool(modifiers & Qt.KeyboardModifier.AltModifier) and snapped[1] and snapped[2]:
                 self.canvas.setCursor(self.addhandle_cursor)
             # insert anchor
-            elif bool(modifiers & Qt.AltModifier) and snapped[3] and not snapped[1]:
+            elif bool(modifiers & Qt.KeyboardModifier.AltModifier) and snapped[3] and not snapped[1]:
                 self.canvas.setCursor(self.insertanchor_cursor)
             # force to add anchor
-            elif bool(modifiers & Qt.ControlModifier) and snapped[1]:
+            elif bool(modifiers & Qt.KeyboardModifier.ControlModifier) and snapped[1]:
                 self.canvas.setCursor(self.insertanchor_cursor)
             # delete anchor
-            elif bool(modifiers & Qt.ShiftModifier) and snapped[1]:
+            elif bool(modifiers & Qt.KeyboardModifier.ShiftModifier) and snapped[1]:
                 self.canvas.setCursor(self.deleteanchor_cursor)
             # delete handle
-            elif bool(modifiers & Qt.ShiftModifier) and snapped[2]:
+            elif bool(modifiers & Qt.KeyboardModifier.ShiftModifier) and snapped[2]:
                 self.canvas.setCursor(self.deletehandle_cursor)
 
             # move anchor
@@ -425,7 +432,7 @@ class BezierEditingTool(QgsMapTool):
         if not layer or layer.type() != QgsMapLayer.VectorLayer:
             return
         mouse_point, snapped, snap_point, _ = self.getSnapPoint(event)
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # bezier tool
             if self.mode == "bezier":
                 self.clicked_idx = None
@@ -452,9 +459,9 @@ class BezierEditingTool(QgsMapTool):
                     self.selectFeatures(mouse_point)
             if self.bm is not None:
                 self.bm.show_handle(self.show_handle)
-        elif event.button() == Qt.RightButton:
+        elif event.button() == Qt.MouseButton.RightButton:
             if self.mode == "bezier":
-                if bool(modifiers & Qt.ControlModifier):
+                if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
                     return
                 elif self.editing:
                     # if right click on first anchor in editing, flip bezier line
@@ -471,7 +478,7 @@ class BezierEditingTool(QgsMapTool):
                         self.editing = True
             # freehand tool
             elif self.mode == "freehand":
-                if bool(modifiers & Qt.ControlModifier):
+                if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
                     return
                 # if right click in editing, bezier editing finish
                 elif self.editing:

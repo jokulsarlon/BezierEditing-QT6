@@ -37,6 +37,9 @@ Dependent Python libraries and resources
 
 Change Log
 --------------------------------------------
+Version 1.3.9
+添加QT6支持
+
 Version 1.3.8
 - fixed a bug where attributes disappear in the split tool.
     
