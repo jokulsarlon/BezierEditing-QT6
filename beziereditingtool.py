@@ -15,18 +15,23 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtCore import QObject, QLocale, QTranslator, QCoreApplication, QSettings, QPointF
-from qgis.PyQt.QtGui import QColor, QCursor, QPixmap, QFont, QTextDocument
-from qgis.PyQt.QtWidgets import QApplication, QAction, QAbstractButton, QGraphicsItemGroup, QMenu, QInputDialog, QMessageBox, QPushButton
-from qgis.core import QgsSettingsRegistryCore, QgsSettingsEntryBool, QgsWkbTypes, QgsProject, QgsVectorLayer, QgsGeometry, QgsPointXY, QgsFeature, QgsEditFormConfig, QgsFeatureRequest, QgsDistanceArea, QgsRectangle, QgsVectorLayerUtils, Qgis, QgsAction, QgsApplication, QgsMapLayer, QgsCoordinateTransform, QgsExpressionContextScope, QgsSettings, QgsMarkerSymbol, QgsTextAnnotation, QgsMessageLog
-from qgis.gui import QgsAttributeEditorContext, QgsMapTool, QgsAttributeDialog, QgsRubberBand, QgsAttributeForm, QgsVertexMarker, QgsHighlight, QgsMapCanvasAnnotationItem
+from qgis.PyQt.QtCore import Qt, QPointF, QCoreApplication, QSettings
+from qgis.PyQt.QtGui import QColor, QCursor, QPixmap, QFont
+from qgis.PyQt.QtWidgets import (
+    QApplication, QAction, QMenu, QGraphicsItemGroup,
+    QInputDialog, QMessageBox, QPushButton
+)
+from qgis.core import (
+    QgsWkbTypes, QgsProject, QgsVectorLayer, QgsGeometry,
+    QgsPointXY, QgsFeature, QgsRectangle, QgsSettings
+)
+from qgis.gui import (
+    QgsMapTool, QgsRubberBand, QgsVertexMarker,
+    QgsHighlight, QgsMapCanvasAnnotationItem
+)
 from .BezierGeometry import *
 from .BezierMarker import *
 import math
-import numpy as np
-from typing import Dict, Any, List
-
 
 class BezierEditingTool(QgsMapTool):
 
@@ -41,7 +46,7 @@ class BezierEditingTool(QgsMapTool):
         self.canvas.destinationCrsChanged.connect(self.crsChanged)
         # freehand tool line
         self.freehand_rbl = QgsRubberBand(
-            self.canvas, QgsWkbTypes.LineGeometry)
+            self.canvas, QgsWkbTypes.GeometryType.LineGeometry)
         self.freehand_rbl.setColor(QColor(255, 0, 0, 150))
         self.freehand_rbl.setWidth(2)
         # snap marker
@@ -117,6 +122,7 @@ class BezierEditingTool(QgsMapTool):
 
     def canvasPressEvent(self, event):
         modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.KeyboardModifier.AltModifier:
         layer = self.canvas.currentLayer()
         if not layer or layer.type() != QgsMapLayer.VectorLayer:
             return
@@ -125,11 +131,11 @@ class BezierEditingTool(QgsMapTool):
         # bezier tool
         if self.mode == "bezier":
             # right click
-            if event.button() == Qt.RightButton:
+            if event.button() == Qt.MouseButton.RightButton:
                 if bool(modifiers & Qt.ControlModifier):
                     self.menu.exec_(QCursor.pos())
             # left click
-            elif event.button() == Qt.LeftButton:
+            elif event.button() == Qt.MouseButton.LeftButton:
                 # with ctrl
                 if bool(modifiers & Qt.ControlModifier):
                     # if click on anchor with ctrl, force to add anchor not moving anchor
